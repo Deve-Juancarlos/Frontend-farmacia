@@ -1,16 +1,56 @@
-# React + Vite
+# Frontend Farmacia
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Interfaz web (SPA) para el sistema de gestión farmacéutica. Consume la API del backend `Backen-farmacia`.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **React 19** + **Vite 8**
+- **React Router 7**
+- **Tailwind CSS 4**
+- **Axios**
 
-## React Compiler
+## Estructura
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```
+src/
+├── components/
+│   ├── auth/            Login, Register
+│   ├── layout/          Navbar
+│   └── medicamentos/    Dashboard, MedicamentoTabla, MedicamentoFormModal
+├── context/             authContext (contexto) y AuthProvider (estado de sesión)
+├── services/            api.js (instancia axios + manejo de sesión expirada)
+└── App.jsx              Rutas y ruta protegida
+```
 
-## Expanding the ESLint configuration
+## Puesta en marcha
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```bash
+npm install
+cp .env.example .env      # define VITE_API_URL
+npm run dev               # http://localhost:5173
+```
+
+## Funcionalidad
+
+- **Login** con opción "Recordarme" (persiste en `localStorage`; si no, en `sessionStorage`).
+- **Registro** de usuario; si se marca "Registrar mi propia farmacia", crea un tenant y el usuario queda como su administrador.
+- **Dashboard** con CRUD completo del inventario:
+  - Listar medicamentos de la farmacia.
+  - Crear y editar (incluido stock y precios) para `administrador` y `moderador`.
+  - Eliminar solo para `administrador`.
+  - Los usuarios `usuario` tienen vista de solo lectura.
+- Manejo automático de sesión expirada (401 → vuelve al login).
+
+## Scripts
+
+| Comando | Descripción |
+|---|---|
+| `npm run dev` | Desarrollo con HMR |
+| `npm run build` | Build de producción |
+| `npm run preview` | Sirve el build |
+| `npm run lint` | Análisis con ESLint |
+
+## Convenciones
+
+- Máximo **250 líneas por archivo**; si se supera, dividir en subcarpetas/módulos.
+- Toda llamada a la API pasa por `src/services/api.js` (nunca `axios` directo).

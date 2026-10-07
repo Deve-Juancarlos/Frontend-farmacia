@@ -1,8 +1,9 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, AuthContext } from './context/AuthContext';
-import Login from './components/Login';
-import Register from './components/Register';
-import Dashboard from './components/Dashboard';
+import { AuthProvider } from './context/AuthProvider';
+import { AuthContext } from './context/authContext';
+import Login from './components/auth/Login';
+import Register from './components/auth/Register';
+import Dashboard from './components/medicamentos/Dashboard';
 import { useContext } from 'react';
 
 const ProtectedRoute = ({ children }) => {
