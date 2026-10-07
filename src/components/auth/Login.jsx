@@ -1,6 +1,7 @@
 import { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import api, { mensajeDeError } from '../../services/api';
+import { mensajeDeError } from '../../services/api';
+import { iniciarSesion } from '../../services/authService';
 import { AuthContext } from '../../context/authContext';
 import logoFarmacia from '../../assets/logo-farmacia.png';
 
@@ -60,11 +61,11 @@ export default function Login() {
 
     setIsLoading(true);
     try {
-      const res = await api.post('/api/auth/login', {
+      const { usuario, token } = await iniciarSesion({
         username: formData.username.trim(),
         password: formData.password,
       });
-      login(res.data.usuario, res.data.token, formData.rememberMe);
+      login(usuario, token, formData.rememberMe);
       navigate('/dashboard', { replace: true });
     } catch (err) {
       setError(mensajeDeError(err));

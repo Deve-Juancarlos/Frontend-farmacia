@@ -1,36 +1,29 @@
 import { useState } from 'react';
-import api, { mensajeDeError } from '../../services/api';
-
-const estadoInicial = {
-  descripcionMed: '',
-  Presentacion: '',
-  Marca: '',
-  stock: '',
-  precioVentaUni: '',
-  precioVentaPres: '',
-  fechaFabricacion: '',
-  fechaVencimiento: '',
-  CodLab: '',
-};
-
-const soloFecha = (valor) => (valor ? String(valor).slice(0, 10) : '');
-
-// El componente se monta con una key distinta al abrir, por lo que basta
-// con inicializar el formulario aquí (sin efectos).
-const valoresDe = (item, modo) => (modo === 'editar' && item ? {
-  descripcionMed: item.descripcionMed || '',
-  Presentacion: item.Presentacion || '',
-  Marca: item.Marca || '',
-  stock: item.stock ?? '',
-  precioVentaUni: item.precioVentaUni ?? '',
-  precioVentaPres: item.precioVentaPres ?? '',
-  fechaFabricacion: soloFecha(item.fechaFabricacion),
-  fechaVencimiento: soloFecha(item.fechaVencimiento),
-  CodLab: item.CodLab ?? '',
-} : estadoInicial);
+import { mensajeDeError } from '../../services/api';
+import { crearMedicamento, actualizarMedicamento } from '../../services/medicamentoService';
+import { valoresDe, construirPayload, validarFormulario } from './medicamentoForm';
+import CampoFormulario from './CampoFormulario';
+import { PackageIcon, BeakerIcon, CloseIcon } from '../icons/DashboardIcons';
+import {
+  PillIcon,
+  TagIcon,
+  HashIcon,
+  CurrencyIcon,
+  CalendarIcon,
+  SpinnerIcon,
+} from '../icons/FormIcons';
 
 const inputClass =
-  'mt-1 block w-full border border-gray-300 rounded-lg p-2.5 text-gray-900 focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition';
+  'mt-1 block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all duration-200 sm:text-sm';
+const selectClass =
+  'mt-1 block w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all duration-200 sm:text-sm appearance-none';
+const icono = 'h-5 w-5 text-gray-400';
+
+const ChevronDown = () => (
+  <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+  </svg>
+);
 
 export default function MedicamentoFormModal({ modo, item, labs = [], onCerrar, onGuardado }) {
   const [form, setForm] = useState(() => valoresDe(item, modo));
@@ -43,43 +36,18 @@ export default function MedicamentoFormModal({ modo, item, labs = [], onCerrar, 
     if (error) setError('');
   };
 
-  const validar = () => {
-    if (form.descripcionMed.trim().length < 3) return 'La descripción debe tener al menos 3 caracteres.';
-    if (form.stock === '' || Number(form.stock) < 0 || !Number.isInteger(Number(form.stock))) {
-      return 'El stock debe ser un entero mayor o igual a 0.';
-    }
-    if (form.precioVentaUni === '' || Number(form.precioVentaUni) < 0) {
-      return 'El precio unitario debe ser un número mayor o igual a 0.';
-    }
-    if (form.fechaFabricacion && form.fechaVencimiento && form.fechaVencimiento < form.fechaFabricacion) {
-      return 'La fecha de vencimiento debe ser posterior a la de fabricación.';
-    }
-    return null;
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const errorValidacion = validar();
+    const errorValidacion = validarFormulario(form);
     if (errorValidacion) return setError(errorValidacion);
 
     setGuardando(true);
     try {
-      const payload = {
-        descripcionMed: form.descripcionMed.trim(),
-        Presentacion: form.Presentacion.trim(),
-        Marca: form.Marca.trim(),
-        stock: Number(form.stock),
-        precioVentaUni: Number(form.precioVentaUni),
-      };
-      if (form.precioVentaPres !== '') payload.precioVentaPres = Number(form.precioVentaPres);
-      if (form.fechaFabricacion) payload.fechaFabricacion = form.fechaFabricacion;
-      if (form.fechaVencimiento) payload.fechaVencimiento = form.fechaVencimiento;
-      payload.CodLab = form.CodLab === '' ? null : Number(form.CodLab);
-
+      const payload = construirPayload(form);
       if (modo === 'editar') {
-        await api.put(`/api/medicamentos/${item.CodMedicamento}`, payload);
+        await actualizarMedicamento(item.CodMedicamento, payload);
       } else {
-        await api.post('/api/medicamentos', payload);
+        await crearMedicamento(payload);
       }
       onGuardado();
     } catch (err) {
@@ -90,90 +58,106 @@ export default function MedicamentoFormModal({ modo, item, labs = [], onCerrar, 
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-emerald-100">
-          <h3 className="text-lg font-bold text-emerald-800">
-            {modo === 'editar' ? 'Editar medicamento' : 'Nuevo medicamento'}
-          </h3>
-          <button onClick={onCerrar} className="text-gray-400 hover:text-gray-600 text-2xl leading-none" aria-label="Cerrar">×</button>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-gray-100">
+        <div className="sticky top-0 bg-white z-10 flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-3">
+            <div className="bg-emerald-100 p-2 rounded-lg">
+              <PillIcon className="h-5 w-5 text-emerald-600" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-800">
+              {modo === 'editar' ? 'Editar medicamento' : 'Registrar nuevo medicamento'}
+            </h3>
+          </div>
+          <button
+            onClick={onCerrar}
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+            aria-label="Cerrar modal"
+          >
+            <CloseIcon className="h-5 w-5" />
+          </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4" noValidate>
+        <form onSubmit={handleSubmit} className="p-6 space-y-6" noValidate>
           {error && (
             <div className="p-3 rounded-lg bg-red-50 border border-red-200" role="alert">
               <p className="text-red-700 text-sm font-medium">{error}</p>
             </div>
           )}
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700">Descripción *</label>
-            <input name="descripcionMed" type="text" className={inputClass}
-              value={form.descripcionMed} onChange={handleChange} placeholder="Ej: Paracetamol 500mg" />
-          </div>
+          <section className="space-y-4">
+            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Información Básica</h4>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700">Presentación</label>
-              <input name="Presentacion" type="text" className={inputClass}
-                value={form.Presentacion} onChange={handleChange} placeholder="Caja x 20" />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700">Marca</label>
-              <input name="Marca" type="text" className={inputClass}
-                value={form.Marca} onChange={handleChange} placeholder="Tylenol" />
-            </div>
-          </div>
+            <CampoFormulario label="Descripción del medicamento" requerido icon={<PillIcon className={icono} />}>
+              <input name="descripcionMed" type="text" className={inputClass} required
+                value={form.descripcionMed} onChange={handleChange} placeholder="Ej: Paracetamol 500mg" />
+            </CampoFormulario>
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700">Laboratorio</label>
-            <select name="CodLab" className={inputClass} value={form.CodLab} onChange={handleChange}>
-              <option value="">Sin asignar</option>
-              {labs.map((lab) => (
-                <option key={lab.CodLab} value={lab.CodLab}>{lab.razonSocial}</option>
-              ))}
-            </select>
-          </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <CampoFormulario label="Marca" icon={<TagIcon className={icono} />}>
+                <input name="Marca" type="text" className={inputClass}
+                  value={form.Marca} onChange={handleChange} placeholder="Ej: Tylenol" />
+              </CampoFormulario>
+              <CampoFormulario label="Presentación" icon={<PackageIcon className={icono} />}>
+                <input name="Presentacion" type="text" className={inputClass}
+                  value={form.Presentacion} onChange={handleChange} placeholder="Ej: Caja x 20 tabletas" />
+              </CampoFormulario>
+            </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700">Stock *</label>
-              <input name="stock" type="number" min="0" className={inputClass}
-                value={form.stock} onChange={handleChange} />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700">P. Unidad *</label>
-              <input name="precioVentaUni" type="number" min="0" step="0.01" className={inputClass}
-                value={form.precioVentaUni} onChange={handleChange} />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700">P. Present.</label>
-              <input name="precioVentaPres" type="number" min="0" step="0.01" className={inputClass}
-                value={form.precioVentaPres} onChange={handleChange} />
-            </div>
-          </div>
+            <CampoFormulario label="Laboratorio" icon={<BeakerIcon className={icono} />} trailing={<ChevronDown />}>
+              <select name="CodLab" className={selectClass} value={form.CodLab} onChange={handleChange}>
+                <option value="">Sin asignar</option>
+                {labs.map((lab) => (
+                  <option key={lab.CodLab} value={lab.CodLab}>{lab.razonSocial}</option>
+                ))}
+              </select>
+            </CampoFormulario>
+          </section>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700">F. Fabricación</label>
-              <input name="fechaFabricacion" type="date" className={inputClass}
-                value={form.fechaFabricacion} onChange={handleChange} />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700">F. Vencimiento</label>
-              <input name="fechaVencimiento" type="date" className={inputClass}
-                value={form.fechaVencimiento} onChange={handleChange} />
-            </div>
-          </div>
+          <hr className="border-gray-100" />
 
-          <div className="flex justify-end gap-3 pt-2">
+          <section className="space-y-4">
+            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Inventario y Precios</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <CampoFormulario label="Stock" requerido icon={<HashIcon className={icono} />}>
+                <input name="stock" type="number" min="0" step="1" className={inputClass} required
+                  value={form.stock} onChange={handleChange} placeholder="0" />
+              </CampoFormulario>
+              <CampoFormulario label="P. Unidad" requerido icon={<CurrencyIcon className={icono} />}>
+                <input name="precioVentaUni" type="number" min="0" step="0.01" className={inputClass} required
+                  value={form.precioVentaUni} onChange={handleChange} placeholder="0.00" />
+              </CampoFormulario>
+              <CampoFormulario label="P. Presentación" icon={<CurrencyIcon className={icono} />}>
+                <input name="precioVentaPres" type="number" min="0" step="0.01" className={inputClass}
+                  value={form.precioVentaPres} onChange={handleChange} placeholder="0.00" />
+              </CampoFormulario>
+            </div>
+          </section>
+
+          <hr className="border-gray-100" />
+
+          <section className="space-y-4">
+            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Fechas de Control</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <CampoFormulario label="F. Fabricación" icon={<CalendarIcon className={icono} />}>
+                <input name="fechaFabricacion" type="date" className={inputClass}
+                  value={form.fechaFabricacion} onChange={handleChange} />
+              </CampoFormulario>
+              <CampoFormulario label="F. Vencimiento" icon={<CalendarIcon className={icono} />}>
+                <input name="fechaVencimiento" type="date" className={inputClass}
+                  value={form.fechaVencimiento} onChange={handleChange} />
+              </CampoFormulario>
+            </div>
+          </section>
+
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-4 border-t border-gray-100">
             <button type="button" onClick={onCerrar}
-              className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition font-medium">
+              className="w-full sm:w-auto px-5 py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 font-semibold text-sm">
               Cancelar
             </button>
             <button type="submit" disabled={guardando}
-              className="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-70 transition font-semibold">
-              {guardando ? 'Guardando...' : 'Guardar'}
+              className="w-full sm:w-auto inline-flex justify-center items-center gap-2 px-5 py-2.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-70 disabled:cursor-not-allowed transition-all duration-200 font-semibold text-sm shadow-md shadow-emerald-200">
+              {guardando ? (<><SpinnerIcon className="h-4 w-4" />Guardando...</>) : ('Guardar Medicamento')}
             </button>
           </div>
         </form>

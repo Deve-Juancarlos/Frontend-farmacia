@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import api, { mensajeDeError } from '../../services/api';
+import { mensajeDeError } from '../../services/api';
+import { registrar } from '../../services/authService';
 import logoFarmacia from '../../assets/logo-farmacia.png';
 
 const estadoInicial = {
@@ -56,7 +57,7 @@ export default function Register() {
       };
       if (formData.crearFarmacia) payload.nombreTenant = formData.nombreTenant.trim();
 
-      await api.post('/api/auth/registro', payload);
+      await registrar(payload);
       setSuccess('Registro exitoso. Redirigiendo al login...');
       setTimeout(() => navigate('/'), 1500);
     } catch (err) {
