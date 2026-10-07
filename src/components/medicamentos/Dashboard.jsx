@@ -8,6 +8,7 @@ import MedicamentoFormModal from './MedicamentoFormModal';
 export default function Dashboard() {
   const { user } = useContext(AuthContext);
   const [medicamentos, setMedicamentos] = useState([]);
+  const [labs, setLabs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [modal, setModal] = useState({ abierto: false, modo: 'crear', item: null });
@@ -31,8 +32,14 @@ export default function Dashboard() {
     let activo = true;
     (async () => {
       try {
-        const res = await api.get('/api/medicamentos');
-        if (activo) setMedicamentos(res.data);
+        const [resMeds, resLabs] = await Promise.all([
+          api.get('/api/medicamentos'),
+          api.get('/api/laboratorios'),
+        ]);
+        if (activo) {
+          setMedicamentos(resMeds.data);
+          setLabs(resLabs.data);
+        }
       } catch (err) {
         if (activo) setError(mensajeDeError(err));
       } finally {
@@ -97,6 +104,7 @@ export default function Dashboard() {
           key={`${modal.modo}-${modal.item?.CodMedicamento ?? 'nuevo'}`}
           modo={modal.modo}
           item={modal.item}
+          labs={labs}
           onCerrar={cerrarModal}
           onGuardado={async () => { cerrarModal(); await cargar(); }}
         />

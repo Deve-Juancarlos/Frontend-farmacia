@@ -10,6 +10,7 @@ const estadoInicial = {
   precioVentaPres: '',
   fechaFabricacion: '',
   fechaVencimiento: '',
+  CodLab: '',
 };
 
 const soloFecha = (valor) => (valor ? String(valor).slice(0, 10) : '');
@@ -25,12 +26,13 @@ const valoresDe = (item, modo) => (modo === 'editar' && item ? {
   precioVentaPres: item.precioVentaPres ?? '',
   fechaFabricacion: soloFecha(item.fechaFabricacion),
   fechaVencimiento: soloFecha(item.fechaVencimiento),
+  CodLab: item.CodLab ?? '',
 } : estadoInicial);
 
 const inputClass =
   'mt-1 block w-full border border-gray-300 rounded-lg p-2.5 text-gray-900 focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition';
 
-export default function MedicamentoFormModal({ modo, item, onCerrar, onGuardado }) {
+export default function MedicamentoFormModal({ modo, item, labs = [], onCerrar, onGuardado }) {
   const [form, setForm] = useState(() => valoresDe(item, modo));
   const [error, setError] = useState('');
   const [guardando, setGuardando] = useState(false);
@@ -72,6 +74,7 @@ export default function MedicamentoFormModal({ modo, item, onCerrar, onGuardado 
       if (form.precioVentaPres !== '') payload.precioVentaPres = Number(form.precioVentaPres);
       if (form.fechaFabricacion) payload.fechaFabricacion = form.fechaFabricacion;
       if (form.fechaVencimiento) payload.fechaVencimiento = form.fechaVencimiento;
+      payload.CodLab = form.CodLab === '' ? null : Number(form.CodLab);
 
       if (modo === 'editar') {
         await api.put(`/api/medicamentos/${item.CodMedicamento}`, payload);
@@ -120,6 +123,16 @@ export default function MedicamentoFormModal({ modo, item, onCerrar, onGuardado 
               <input name="Marca" type="text" className={inputClass}
                 value={form.Marca} onChange={handleChange} placeholder="Tylenol" />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700">Laboratorio</label>
+            <select name="CodLab" className={inputClass} value={form.CodLab} onChange={handleChange}>
+              <option value="">Sin asignar</option>
+              {labs.map((lab) => (
+                <option key={lab.CodLab} value={lab.CodLab}>{lab.razonSocial}</option>
+              ))}
+            </select>
           </div>
 
           <div className="grid grid-cols-3 gap-4">
